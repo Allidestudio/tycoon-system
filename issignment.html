@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Creator Tycoon Simulator - Offline Edition</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --card-bg: rgba(15, 23, 42, 0.75);
+      --card-border: rgba(255, 255, 255, 0.18);
+      --accent-cyan: #38bdf8;
+      --accent-purple: #c084fc;
+      --accent-green: #4ade80;
+      --accent-red: #f43f5e;
+      --accent-gold: #fbbf24;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #f8fafc;
+      min-height: 100vh;
+      margin: 0;
+      padding: 12px 12px 80px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #030712;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: 
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.35) 0%, transparent 45%),
+        radial-gradient(circle at 85% 30%, rgba(192, 132, 252, 0.3) 0%, transparent 40%),
+        radial-gradient(circle at 50% 80%, rgba(56, 189, 248, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 85%, rgba(244, 63, 94, 0.25) 0%, transparent 40%);
+      z-index: -3;
+      animation: bgPulse 10s ease-in-out infinite alternate;
+      background-size: 150% 150%;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background-image: 
+        radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+        radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+      background-size: 40px 40px, 20px 20px;
+      background-position: 0 0, 10px 10px;
+      z-index: -2;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    @keyframes bgPulse {
+      0% { transform: scale(1) rotate(0deg); }
+      50% { transform: scale(1.08) rotate(2deg); }
+      100% { transform: scale(1.03) rotate(-1deg); }
+    }
+
+    #particle-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .ad-slot {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px dashed rgba(56, 189, 248, 0.4);
+      border-radius: 18px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+    }
+
+    .ad-label {
+      font-size: 0.58rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #64748b;
+      margin-bottom: 2px;
+      font-weight: 800;
+    }
+
+    .ad-header { width: 100%; max-width: 900px; margin-bottom: 12px; min-height: 60px; padding: 6px; }
+    @media (min-width: 768px) { .ad-header { min-height: 90px; } }
+
+    .ad-mobile-feed { display: flex; width: 100%; min-height: 90px; margin: 12px 0; padding: 8px; }
+    @media (min-width: 768px) { .ad-mobile-feed { display: none; } }
+
+    .ad-sidebar { display: none; width: 100%; min-height: 300px; padding: 16px; }
+    @media (min-width: 768px) { .ad-sidebar { display: flex; } }
+
+    .ad-sticky-bottom {
+      position: fixed; bottom: 0; left: 0; width: 100%; height: 60px;
+      background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(255, 255, 255, 0.1); z-index: 888;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    @media (min-width: 768px) { .ad-sticky-bottom { display: none; } }
+
+    .app-wrapper {
+      width: 100%; max-width: 900px;
+      display: grid; grid-template-columns: 1fr; gap: 16px;
+    }
+    @media (min-width: 768px) { .app-wrapper { grid-template-columns: 1fr 300px; } }
+
+    .game-card {
+      background: var(--card-bg); backdrop-filter: blur(28px);
+      border: 1px solid var(--card-border); border-radius: 28px; padding: 22px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      display: flex; flex-direction: column; gap: 16px;
+    }
+
+    .header-bar { display: flex; justify-content: space-between; align-items: center; }
+
+    .brand-title {
+      margin: 0; font-size: 1.55rem; font-weight: 900; letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #38bdf8 0%, #c084fc 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    .btn-icon {
+      background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1; padding: 8px 12px; border-radius: 18px; font-family: inherit;
+      font-size: 0.75rem; font-weight: 800; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-icon:hover { background: rgba(255,255,255,0.18); color: #fff; transform: translateY(-2px); }
+
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .stat-card {
+      background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.85));
+      border: 1px solid rgba(255, 255, 255, 0.12); padding: 16px; border-radius: 20px;
+    }
+
+    .stat-label { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; display: block; margin-bottom: 6px; }
+    .stat-value { font-size: 1.4rem; font-weight: 900; color: #ffffff; }
+    .stat-value.subs { color: var(--accent-cyan); text-shadow: 0 0 12px rgba(56, 189, 248, 0.4); }
+    .stat-value.cash { color: var(--accent-green); text-shadow: 0 0 12px rgba(74, 222, 128, 0.4); }
+    .stat-value.locked { color: var(--accent-red); font-size: 0.85rem; }
+
+    .live-feed-box {
+      background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 10px 14px; border-radius: 16px; display: flex; align-items: center; gap: 10px; min-height: 44px;
+    }
+    .live-badge { background: #f43f5e; color: white; font-size: 0.6rem; font-weight: 900; padding: 2px 8px; border-radius: 8px; text-transform: uppercase; }
+    .live-text { font-size: 0.8rem; font-weight: 700; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .trend-box {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(244, 63, 94, 0.15));
+      border: 1px solid rgba(251, 191, 36, 0.4); padding: 12px 18px; border-radius: 18px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .trend-title { font-size: 0.68rem; color: var(--accent-gold); font-weight: 800; text-transform: uppercase; }
+    .trend-topic { font-size: 0.95rem; font-weight: 800; color: #fff; margin-top: 2px; }
+
+    .action-group { display: flex; flex-direction: column; gap: 12px; }
+
+    .btn-main {
+      background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%); color: white; border: none;
+      padding: 18px 24px; font-family: inherit; font-size: 1.15rem; font-weight: 800; border-radius: 20px;
+      cursor: pointer; box-shadow: 0 10px 25px rgba(244, 63, 94, 0.4); transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .btn-main:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(244, 63, 94, 0.5); }
+    .btn-main.pulse-first { animation: buttonPulse 1.5s infinite; }
+
+    @keyframes buttonPulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
+
+    .btn-boost {
+      background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%); color: white; border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 14px 20px; font-family: inherit; font-size: 0.92rem; font-weight: 800; border-radius: 18px;
+      cursor: pointer; box-shadow: 0 8px 20px rgba(168, 85, 247, 0.35); display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-boost:disabled { background: #334155; color: #94a3b8; cursor: not-allowed; box-shadow: none; border: none; }
+
+    .badge-reward { background: var(--accent-gold); color: #0f172a; font-size: 0.65rem; padding: 2px 7px; border-radius: 6px; font-weight: 900; }
+
+    .toast-banner {
+      display: none; background: rgba(15, 23, 42, 0.95); border: 1px solid var(--accent-purple);
+      padding: 12px 16px; border-radius: 14px; font-size: 0.85rem; font-weight: 800; color: #e9d5ff; text-align: center;
+    }
+
+    .nav-tabs { display: flex; background: rgba(15, 23, 42, 0.8); padding: 5px; border-radius: 16px; gap: 6px; overflow-x: auto; }
+    .tab-btn {
+      flex: 1; padding: 10px; background: transparent; border: none; color: #94a3b8;
+      font-family: inherit; font-weight: 800; font-size: 0.8rem; border-radius: 12px; cursor: pointer; white-space: nowrap;
+    }
+    .tab-btn.active { background: #334155; color: #fff; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .shop-item, .quiz-card {
+      background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 14px 16px; margin-bottom: 10px; border-radius: 18px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .item-info h4 { margin: 0; font-size: 0.9rem; font-weight: 800; color: #f1f5f9; }
+    .item-info p { margin: 2px 0 0 0; font-size: 0.75rem; color: #64748b; }
+
+    .btn-buy, .quiz-opt {
+      background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none;
+      padding: 10px 16px; border-radius: 12px; cursor: pointer; font-family: inherit; font-size: 0.8rem; font-weight: 800; width: 100%; text-align: left;
+    }
+    .btn-buy:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+    .quiz-opt.correct { background: linear-gradient(135deg, #22c55e, #16a34a) !important; }
+    .quiz-opt.wrong { background: linear-gradient(135deg, #ef4444, #dc2626) !important; }
+
+    .lb-container { background: rgba(15, 23, 42, 0.6); border-radius: 18px; padding: 8px; max-height: 280px; overflow-y: auto; }
+    .lb-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); font-size: 0.85rem; }
+    .lb-rank { font-weight: 900; width: 34px; color: #64748b; }
+    .lb-name { flex-grow: 1; font-weight: 700; color: #cbd5e1; }
+    .lb-subs { color: var(--accent-cyan); font-weight: 800; }
+    .lb-player { background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 12px; }
+    .lb-player .lb-name { color: #fff; }
+
+    #catch-canvas {
+      width: 100%; height: 230px; background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+      border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 18px; display: block; margin-top: 10px; touch-action: none;
+    }
+    .mini-game-stats { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.78rem; font-weight: 800; color: #94a3b8; }
+
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(2, 6, 23, 0.88); backdrop-filter: blur(14px);
+      display: flex; justify-content: center; align-items: center; z-index: 999; padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+    .custom-modal {
+      background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 28px; padding: 28px; max-width: 420px; width: 100%; box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
+      text-align: center;
+    }
+    .custom-modal h2 { margin: 0 0 16px 0; font-size: 1.4rem; color: var(--accent-cyan); font-weight: 900; }
+
+    .btn-submit {
+      width: 100%; background: linear-gradient(135deg, var(--accent-cyan), #2563eb); color: white;
+      border: none; padding: 15px; border-radius: 16px; font-family: inherit; font-weight: 800; font-size: 1rem; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="particle-canvas"></canvas>
+
+  <!-- AD HEADER -->
+  <div class="ad-slot ad-header">
+    <span class="ad-label">Sponsor Banner</span>
+    <div style="font-size: 0.7rem; color: #64748b; font-weight: 600;">[ Adaptive Header Ad Slot ]</div>
+  </div>
+
+  <div class="app-wrapper">
+    <div class="game-card">
+      <div class="header-bar">
+        <div>
+          <h1 class="brand-title" id="display-channel-name">🎬 Creator Tycoon</h1>
+          <span id="display-category" style="font-size:0.75rem; color:#94a3b8; font-weight:700;">🎮 Gaming</span>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-icon" onclick="openGuide()">❓ Guide</button>
+          <button class="btn-icon" onclick="resetGameProgress()" style="color: var(--accent-red); border-color: rgba(244,63,94,0.3);">🔄 Reset</button>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-label">Subscribers</span>
+          <div class="stat-value subs" id="sub-count">0</div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Ad Revenue</span>
+          <div class="stat-value locked" id="cash-count">🔒 Req. 1,000 Subs</div>
+        </div>
+      </div>
+
+      <div class="live-feed-box">
+        <span class="live-badge">FEED</span>
+        <span class="live-text" id="live-feed-text">Publish your 1st video to gain subscribers!</span>
+      </div>
+
+      <div class="trend-box">
+        <div>
+          <div class="trend-title">🔥 Trending Right Now</div>
+          <div class="trend-topic" id="trend-topic">Minecraft 100 Days</div>
+        </div>
+        <span style="font-size:0.75rem; background:rgba(251, 191, 36, 0.25); color:var(--accent-gold); padding:4px 12px; border-radius:20px; font-weight:800;">3x Bonus</span>
+      </div>
+
+      <div class="action-group">
+        <button class="btn-main pulse-first" id="record-btn" onclick="recordVideo()">
+          📹 Record First Video
+        </button>
+        <button class="btn-boost" id="boost-btn" onclick="triggerBoostModal()">
+          ⚡ Watch Ad for Sub Boost <span class="badge-reward">1 - 1000 SUBS</span>
+        </button>
+      </div>
+
+      <!-- AD MOBILE FEED -->
+      <div class="ad-slot ad-mobile-feed">
+        <span class="ad-label">Advertisement</span>
+        <div style="font-size: 0.7rem; color: #64748b; font-weight: 600;">[ Mobile Native In-Feed Ad Slot ]</div>
+      </div>
+
+      <div class="toast-banner" id="toast-banner"></div>
+
+      <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('shop')">🛒 Equipment</button>
+        <button class="tab-btn" onclick="switchTab('games')">🎮 Mini-Games</button>
+        <button class="tab-btn" onclick="switchTab('quiz')">❓ Quiz</button>
+        <button class="tab-btn" onclick="switchTab('leaderboard')">🏆 Leaderboard</button>
+      </div>
+
+      <!-- SHOP TAB -->
+      <div id="tab-shop" class="tab-content active">
+        <div class="shop-item">
+          <div class="item-info">
+            <h4>Channel Hype / SEO <span style="color:var(--accent-cyan)">(Lvl <span id="hype-lvl">1</span>)</span></h4>
+            <p>Passively gains subscribers ultra fast</p>
+          </div>
+          <button class="btn-buy" id="hype-btn" onclick="buyHype()" style="width:auto;">$<span id="hype-cost">30</span></button>
+        </div>
+
+        <div class="shop-item">
+          <div class="item-info">
+            <h4>4K Studio Camera <span style="color:var(--accent-cyan)">(Lvl <span id="cam-lvl">1</span>)</span></h4>
+            <p>Gains more subscribers per video</p>
+          </div>
+          <button class="btn-buy" id="cam-btn" onclick="buyCamera()" style="width:auto;">$<span id="cam-cost">20</span></button>
+        </div>
+
+        <div class="shop-item">
+          <div class="item-info">
+            <h4>PC Editing Rig <span style="color:var(--accent-cyan)">(Lvl <span id="pc-lvl">1</span>)</span></h4>
+            <p>Earns more revenue per video</p>
+          </div>
+          <button class="btn-buy" id="pc-btn" onclick="buyPC()" style="width:auto;">$<span id="pc-cost">50</span></button>
+        </div>
+
+        <div class="shop-item">
+          <div class="item-info">
+            <h4>Hire Video Editor <span style="color:var(--accent-cyan)">(Lvl <span id="editor-lvl">0</span>)</span></h4>
+            <p>Generates cash automatically</p>
+          </div>
+          <button class="btn-buy" id="editor-btn" onclick="buyEditor()" style="width:auto;">$<span id="editor-cost">150</span></button>
+        </div>
+      </div>
+
+      <!-- MINI-GAMES TAB -->
+      <div id="tab-games" class="tab-content">
+        <div style="text-align:center;">
+          <h4 style="margin:0 0 4px 0; color:#fff;">🎯 Catch Viral Thumbnails!</h4>
+          <p style="margin:0 0 10px 0; font-size:0.75rem; color:#94a3b8;">Catch Thumbnails (+Subs) & Power-Ups! Avoid Copyright Strikes!</p>
+          <div class="mini-game-stats">
+            <span>Score: <span id="mg-score" style="color:#fff;">0</span></span>
+            <span>Combo: <span id="mg-combo" style="color:var(--accent-gold);">1x</span></span>
+            <span>High Score: <span id="mg-high" style="color:var(--accent-cyan);">0</span></span>
+          </div>
+          <canvas id="catch-canvas"></canvas>
+          <button class="btn-buy" style="margin-top:12px; width:100%; padding:12px; text-align:center;" onclick="startCatchGame()">▶️ Start Mini Game</button>
+        </div>
+      </div>
+
+      <!-- QUIZ TAB -->
+      <div id="tab-quiz" class="tab-content">
+        <div class="quiz-card" id="quiz-box" style="flex-direction: column; align-items: stretch;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <span style="font-size:0.75rem; color:#94a3b8; font-weight:800;">CREATOR TRIVIA SHOWDOWN</span>
+            <span id="quiz-streak" style="font-size:0.75rem; color:var(--accent-gold); font-weight:800; background:rgba(251, 191, 36, 0.15); padding:2px 8px; border-radius:8px;">🔥 Streak: 0</span>
+          </div>
+          <h4 id="quiz-question" style="margin:0 0 14px 0; color:#fff; font-size:0.95rem; line-height:1.4;">Question loading...</h4>
+          <div id="quiz-options" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+      </div>
+
+      <!-- LEADERBOARD TAB -->
+      <div id="tab-leaderboard" class="tab-content">
+        <div class="lb-container" id="leaderboard"></div>
+      </div>
+    </div>
+
+    <!-- AD SIDEBAR -->
+    <div class="ad-slot ad-sidebar">
+      <span class="ad-label">Advertisement</span>
+      <div style="font-size: 0.75rem; color: #64748b; font-weight: 600;">[ Sidebar Banner Ad Slot ]</div>
+    </div>
+  </div>
+
+  <!-- AD STICKY BOTTOM -->
+  <div class="ad-sticky-bottom">
+    <span class="ad-label">Advertisement</span>
+    <div style="font-size: 0.65rem; color: #64748b; font-weight: 600;">[ Mobile Sticky Banner ]</div>
+  </div>
+
+  <!-- GUIDE MODAL -->
+  <div class="modal-overlay" id="guide-modal">
+    <div class="custom-modal">
+      <h2>🚀 Creator Starter Guide</h2>
+      <p style="font-size:0.85rem; color:#94a3b8; line-height:1.5;">1. Record your <strong>First Video</strong> to begin gaining subscribers!</p>
+      <p style="font-size:0.85rem; color:#94a3b8; line-height:1.5;">2. Reach <strong>1,000 Subscribers</strong> to unlock YouTube Monetization & Cash Revenue!</p>
+      <p style="font-size:0.85rem; color:#94a3b8; line-height:1.5;">3. Watch <strong>Subscriber Boost Ads</strong> or play Mini-Games to scale fast!</p>
+      <button class="btn-submit" onclick="closeGuide()">Let's Play!</button>
+    </div>
+  </div>
+
+  <!-- AD WATCH MODAL -->
+  <div class="modal-overlay" id="ad-modal">
+    <div class="custom-modal">
+      <h2>📺 Sponsored Ad Playing...</h2>
+      <p style="font-size:0.85rem; color:#94a3b8; margin-bottom: 20px;">Please watch this promotional message to receive your subscriber boost package.</p>
+      <div style="font-size: 2rem; font-weight: 900; color: var(--accent-gold); margin-bottom: 20px;" id="ad-timer">5</div>
+      <div style="background: rgba(255,255,255,0.08); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 20px;">
+        <div id="ad-progress" style="background: var(--accent-cyan); width: 100%; height: 100%; transition: width 1s linear;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // PARTICLES SYSTEM
+    const canvas = document.getElementById('particle-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class Particle {
+      constructor() { this.reset(); }
+      reset() {
+        this.x = Math.random() * canvas.width;
+        this.y = canvas.height + Math.random() * 100;
+        this.size = Math.random() * 2.5 + 0.5;
+        this.speedY = Math.random() * 0.8 + 0.3;
+        this.opacity = Math.random() * 0.5 + 0.2;
+      }
+      update() { this.y -= this.speedY; if (this.y < -10) this.reset(); }
+      draw() {
+        ctx.fillStyle = `rgba(56, 189, 248, ${this.opacity})`;
+        ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    for (let i = 0; i < 45; i++) particles.push(new Particle());
+    function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => { p.update(); p.draw(); });
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+
+    // GAME STATE
+    let playerName = "New Creator";
+    let channelCategory = "🎮 Gaming";
+    let subs = 0, cash = 0;
+    let hasPostedFirstVideo = false, isMonetized = false;
+    let autoSubRate = 0;
+    let hypeLevel = 1, hypeCost = 30;
+    let camLevel = 1, camCost = 20;
+    let pcLevel = 1, pcCost = 50;
+    let editorLevel = 0, editorCost = 150;
+    
+    // Mini-game state
+    const mgCanvas = document.getElementById('catch-canvas');
+    const mgCtx = mgCanvas.getContext('2d');
+    let mgRunning = false;
+    let mgScore = 0;
+    let mgCombo = 1;
+    let miniHighScore = 0;
+    let playerX = 150;
+    let fallingItems = [];
+
+    // Quiz state
+    let quizStreak = 0;
+    const questions = [
+      { q: "What platform feature helps creators pin top comments?", options: ["Super Chat", "Pinned Comment", "Community Post", "Premieres"], answer: 1 },
+      { q: "What is the standard thumbnail resolution ratio?", options: ["16:9", "4:3", "1:1", "9:16"], answer: 0 },
+      { q: "What metric measures the percentage of clicks on impressions?", options: ["Retention Rate", "CTR (Click-Through Rate)", "Watch Time", "Engagement"], answer: 1 },
+      { q: "What milestone creator award is made of pure silver?", options: ["Silver Creator Award", "Gold Creator Award", "Diamond Creator Award", "Ruby Creator Award"], answer: 0 }
+    ];
+    let currentQuizIndex = 0;
+
+    // AUTO SUBSCRIBER & REVENUE TICK LOOP (Every 1 second)
+    setInterval(() => {
+      if (autoSubRate > 0 && hasPostedFirstVideo) {
+        subs += autoSubRate;
+        if (subs >= 1000) {
+          // Automatic YouTube ad revenue generation based on active viewers/subs and PC upgrades
+          let revenuePerSec = (subs * 0.0002) * (pcLevel * 0.5);
+          cash += revenuePerSec;
+        }
+        updateUI();
+      }
+    }, 1000);
+
+    function openGuide() {
+      document.getElementById('guide-modal').classList.add('active');
+    }
+
+    function closeGuide() {
+      document.getElementById('guide-modal').classList.remove('active');
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-' + tabId).classList.add('active');
+      event.currentTarget.classList.add('active');
+      if (tabId === 'quiz') loadQuizQuestion();
+      if (tabId === 'leaderboard') renderLeaderboard();
+    }
+
+    function recordVideo() {
+      if (!hasPostedFirstVideo) {
+        hasPostedFirstVideo = true;
+        autoSubRate = 1; // Start auto gain once first video is posted
+        document.getElementById('record-btn').classList.remove('pulse-first');
+        document.getElementById('record-btn').innerText = "📹 Record New Video";
+      }
+      subs += camLevel * 10;
+      if (subs >= 1000) {
+        cash += pcLevel * 5; // Record payout boost
+      }
+      updateUI();
+    }
+
+    // 5-Second Ad Subscriber Boost Feature with Low Odds for 300-1000
+    function triggerBoostModal() {
+      const adModal = document.getElementById('ad-modal');
+      const timerEl = document.getElementById('ad-timer');
+      const progressEl = document.getElementById('ad-progress');
+      
+      adModal.classList.add('active');
+      let timeLeft = 5;
+      timerEl.innerText = timeLeft;
+      progressEl.style.width = '100%';
+
+      let countdown = setInterval(() => {
+        timeLeft--;
+        timerEl.innerText = timeLeft;
+        progressEl.style.width = (timeLeft * 20) + '%';
+
+        if (timeLeft <= 0) {
+          clearInterval(countdown);
+          adModal.classList.remove('active');
+          
+          let earnedSubs;
+          let roll = Math.random();
+          if (roll < 0.85) {
+            earnedSubs = Math.floor(Math.random() * 299) + 1;
+          } else {
+            earnedSubs = Math.floor(Math.random() * 701) + 300;
+          }
+
+          subs += earnedSubs;
+          showToast(`Ad Complete! Gained +${earnedSubs.toLocaleString()} Subscribers!`);
+          updateUI();
+        }
+      }, 1000);
+    }
+
+    function buyHype() {
+      if (cash >= hypeCost) {
+        cash -= hypeCost;
+        hypeLevel++;
+        hypeCost = Math.floor(hypeCost * 1.5);
+        autoSubRate += 3;
+        updateUI();
+      }
+    }
+
+    function buyCamera() {
+      if (cash >= camCost) {
+        cash -= camCost;
+        camLevel++;
+        camCost = Math.floor(camCost * 1.5);
+        updateUI();
+      }
+    }
+
+    function buyPC() {
+      if (cash >= pcCost) {
+        cash -= pcCost;
+        pcLevel++;
+        pcCost = Math.floor(pcCost * 1.5);
+        updateUI();
+      }
+    }
+
+    function buyEditor() {
+      if (cash >= editorCost) {
+        cash -= editorCost;
+        editorLevel++;
+        editorCost = Math.floor(editorCost * 1.5);
+        autoSubRate += 5;
+        updateUI();
+      }
+    }
+
+    function resetGameProgress() {
+      if (confirm("Are you sure you want to reset your progress?")) {
+        location.reload();
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast-banner');
+      toast.innerText = msg;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+
+    // Mini-Game Logic
+    function startCatchGame() {
+      mgCanvas.width = mgCanvas.clientWidth;
+      mgCanvas.height = mgCanvas.clientHeight;
+      mgScore = 0;
+      mgCombo = 1;
+      fallingItems = [];
+      mgRunning = true;
+      document.getElementById('mg-score').innerText = mgScore;
+      document.getElementById('mg-combo').innerText = mgCombo + "x";
+      
+      const spawner = setInterval(() => {
+        if (!mgRunning) { clearInterval(spawner); return; }
+        fallingItems.push({
+          x: Math.random() * (mgCanvas.width - 30),
+          y: -30,
+          speed: Math.random() * 2 + 1.5,
+          type: Math.random() > 0.2 ? 'sub' : 'strike'
+        });
+      }, 800);
+
+      requestAnimationFrame(updateCatchGame);
+    }
+
+    mgCanvas.addEventListener('pointermove', (e) => {
+      const rect = mgCanvas.getBoundingClientRect();
+      playerX = e.clientX - rect.left;
+    });
+
+    function updateCatchGame() {
+      if (!mgRunning) return;
+      mgCtx.clearRect(0, 0, mgCanvas.width, mgCanvas.height);
+
+      mgCtx.fillStyle = '#38bdf8';
+      mgCtx.fillRect(playerX - 35, mgCanvas.height - 20, 70, 12);
+
+      for (let i = fallingItems.length - 1; i >= 0; i--) {
+        let item = fallingItems[i];
+        item.y += item.speed;
+
+        mgCtx.fillStyle = item.type === 'sub' ? '#4ade80' : '#f43f5e';
+        mgCtx.beginPath();
+        mgCtx.arc(item.x + 15, item.y + 15, 12, 0, Math.PI * 2);
+        mgCtx.fill();
+
+        if (item.y + 15 >= mgCanvas.height - 20 && item.x >= playerX - 45 && item.x <= playerX + 45) {
+          if (item.type === 'sub') {
+            mgScore += 10 * mgCombo;
+            subs += 15 * mgCombo;
+            mgCombo = Math.min(mgCombo + 1, 5);
+          } else {
+            mgCombo = 1;
+            mgScore = Math.max(0, mgScore - 20);
+          }
+          document.getElementById('mg-score').innerText = mgScore;
+          document.getElementById('mg-combo').innerText = mgCombo + "x";
+          if (mgScore > miniHighScore) {
+            miniHighScore = mgScore;
+            document.getElementById('mg-high').innerText = miniHighScore;
+          }
+          fallingItems.splice(i, 1);
+          updateUI();
+        } else if (item.y > mgCanvas.height) {
+          fallingItems.splice(i, 1);
+        }
+      }
+
+      requestAnimationFrame(updateCatchGame);
+    }
+
+    // Quiz Logic
+    function loadQuizQuestion() {
+      const qData = questions[currentQuizIndex];
+      document.getElementById('quiz-question').innerText = qData.q;
+      document.getElementById('quiz-streak').innerText = "🔥 Streak: " + quizStreak;
+      
+      const optContainer = document.getElementById('quiz-options');
+      optContainer.innerHTML = '';
+      qData.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'quiz-opt';
+        btn.innerText = opt;
+        btn.onclick = () => answerQuiz(idx, btn);
+        optContainer.appendChild(btn);
+      });
+    }
+
+    function answerQuiz(selectedIdx, btnElement) {
+      const qData = questions[currentQuizIndex];
+      const allBtns = document.querySelectorAll('.quiz-opt');
+      allBtns.forEach(b => b.disabled = true);
+
+      if (selectedIdx === qData.answer) {
+        btnElement.classList.add('correct');
+        quizStreak++;
+        subs += 50 * (quizStreak || 1);
+        showToast("Correct Answer! Sub Reward Granted!");
+      } else {
+        btnElement.classList.add('wrong');
+        allBtns[qData.answer].classList.add('correct');
+        quizStreak = 0;
+        showToast("Incorrect Answer!");
+      }
+      updateUI();
+
+      setTimeout(() => {
+        currentQuizIndex = (currentQuizIndex + 1) % questions.length;
+        loadQuizQuestion();
+      }, 1500);
+    }
+
+    // Leaderboard logic
+    function renderLeaderboard() {
+      const lb = document.getElementById('leaderboard');
+      let dummyList = [
+        { name: "PewDiePipeline", subs: 1250000 },
+        { name: "MrBeastClone", subs: 980000 },
+        { name: "TechNinja", subs: 450000 },
+        { name: "VlogLife", subs: 120000 },
+        { name: playerName, subs: subs, isPlayer: true },
+        { name: "PixelGamer", subs: 45000 },
+        { name: "CasualStreamer", subs: 15000 }
+      ];
+      dummyList.sort((a, b) => b.subs - a.subs);
+
+      lb.innerHTML = '';
+      dummyList.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = `lb-row ${item.isPlayer ? 'lb-player' : ''}`;
+        row.innerHTML = `
+          <span class="lb-rank">#${index + 1}</span>
+          <span class="lb-name">${item.name}</span>
+          <span class="lb-subs">${Math.floor(item.subs).toLocaleString()} subs</span>
+        `;
+        lb.appendChild(row);
+      });
+    }
+
+    function updateUI() {
+      document.getElementById('sub-count').innerText = Math.floor(subs).toLocaleString();
+      if (subs >= 1000) {
+        if (!isMonetized) {
+          isMonetized = true;
+          showToast("Monetization Unlocked!");
+        }
+        document.getElementById('cash-count').className = "stat-value cash";
+        document.getElementById('cash-count').innerText = "$" + cash.toFixed(2);
+      } else {
+        document.getElementById('cash-count').innerText = "🔒 Req. 1,000 Subs";
+      }
+
+      document.getElementById('hype-lvl').innerText = hypeLevel;
+      document.getElementById('hype-cost').innerText = hypeCost;
+      document.getElementById('hype-btn').disabled = cash < hypeCost;
+
+      document.getElementById('cam-lvl').innerText = camLevel;
+      document.getElementById('cam-cost').innerText = camCost;
+      document.getElementById('cam-btn').disabled = cash < camCost;
+
+      document.getElementById('pc-lvl').innerText = pcLevel;
+      document.getElementById('pc-cost').innerText = pcCost;
+      document.getElementById('pc-btn').disabled = cash < pcCost;
+
+      document.getElementById('editor-lvl').innerText = editorLevel;
+      document.getElementById('editor-cost').innerText = editorCost;
+      document.getElementById('editor-btn').disabled = cash < editorCost;
+    }
+
+    updateUI();
+  </script>
+</body>
+</html>
